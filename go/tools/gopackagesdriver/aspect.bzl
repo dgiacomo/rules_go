@@ -22,7 +22,7 @@ load(
     "paths",
 )
 
-GoPkgInfo = provder()
+GoPkgInfo = provider()
 
 def _is_file_external(f):
     return f.owner.workspace_root != ""
