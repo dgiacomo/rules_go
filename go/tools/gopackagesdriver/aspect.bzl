@@ -51,7 +51,17 @@ def _go_archive_to_pkg(archive):
     )
 
 def _make_pkg_json(ctx, archive, pkg_info):
-    pkg_json_file = ctx.actions.declare_file(archive.data.name + ".pkg.json")
+    """
+    We are chosing to keep pkg.json files in a single directory and to replace
+    the path separator with `Z` and hope that it is very unlikely to have these
+    many Z's in the label itself.
+    """
+    data = archive.data
+    root = data.label.workspace_root.replace("/", "Z")
+    package = data.label.package.replace("/", "Z")
+    filename = "{}Z{}{}Z{}.pkg.json".format(root, package, data.label.name, data.name)
+
+    pkg_json_file = ctx.actions.declare_file(filename)
     ctx.actions.write(pkg_json_file, content = pkg_info.to_json())
     return pkg_json_file
 
@@ -63,11 +73,11 @@ def _go_pkg_info_aspect_impl(target, ctx):
     deps_transitive_export_file = []
     deps_transitive_compiled_go_files = []
 
-    for attr in ["deps", "embed"]:
+    for attr in ["deps", "embed", "compilers"]:
         for dep in getattr(ctx.rule.attr, attr, []):
             if GoPkgInfo in dep:
                 pkg_info = dep[GoPkgInfo]
-                if attr == "deps":
+                if attr == ["deps", "compilers"]:
                     deps_transitive_json_file.append(pkg_info.transitive_json_file)
                     deps_transitive_export_file.append(pkg_info.transitive_export_file)
                     deps_transitive_compiled_go_files.append(pkg_info.transitive_compiled_go_files)
@@ -98,7 +108,7 @@ def _go_pkg_info_aspect_impl(target, ctx):
         # the test source files are there. Then, create the pkg json file directly. Only
         # do that for direct dependencies that are not defined as deps, and use the
         # importpath to find which.
-        if ctx.rule.kind == "go_test":
+        if ctx.rule.kind == ["go_test", "go_transition_test"]:
             deps_targets = [
                 dep[GoArchive].data.importpath
                 for dep in ctx.rule.attr.deps
@@ -153,7 +163,7 @@ def _go_pkg_info_aspect_impl(target, ctx):
 
 go_pkg_info_aspect = aspect(
     implementation = _go_pkg_info_aspect_impl,
-    attr_aspects = ["embed", "deps"],
+    attr_aspects = ["embed", "deps", "compilers"],
     attrs = {
         "_go_stdlib": attr.label(
             default = "//:stdlib",
