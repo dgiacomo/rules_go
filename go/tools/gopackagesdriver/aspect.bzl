@@ -63,7 +63,7 @@ def _go_pkg_info_aspect_impl(target, ctx):
     transitive_export_files = []
     transitive_compiled_go_files = []
 
-    for attr in ["deps", "embed"]:
+    for attr in ["deps", "embed", "compilers"]:
         for dep in getattr(ctx.rule.attr, attr, []):
             if GoPkgInfo in dep:
                 pkg_info = dep[GoPkgInfo]
@@ -129,7 +129,7 @@ def _go_pkg_info_aspect_impl(target, ctx):
 
 go_pkg_info_aspect = aspect(
     implementation = _go_pkg_info_aspect_impl,
-    attr_aspects = ["embed", "deps"],
+    attr_aspects = ["embed", "deps", "compilers"],
     attrs = {
         "_go_stdlib": attr.label(
             default = "//:stdlib",
