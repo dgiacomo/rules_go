@@ -63,7 +63,7 @@ def _go_pkg_info_aspect_impl(target, ctx):
     transitive_export_files = []
     transitive_compiled_go_files = []
 
-    for attr in ["deps", "embed", "compilers"]:
+    for attr in ["deps", "embed"]:
         for dep in getattr(ctx.rule.attr, attr, []):
             if GoPkgInfo in dep:
                 pkg_info = dep[GoPkgInfo]
@@ -86,7 +86,7 @@ def _go_pkg_info_aspect_impl(target, ctx):
         pkg = _go_archive_to_pkg(archive)
         pkg_json_files.append(_make_pkg_json(ctx, archive, pkg))
 
-        if ctx.rule.kind == "go_test":
+        if ctx.rule.kind in ["go_test", "go_transition_test"]:
             for dep_archive in archive.direct:
                 # find the archive containing the test sources
                 if archive.data.label == dep_archive.data.label:
@@ -129,7 +129,7 @@ def _go_pkg_info_aspect_impl(target, ctx):
 
 go_pkg_info_aspect = aspect(
     implementation = _go_pkg_info_aspect_impl,
-    attr_aspects = ["embed", "deps", "compilers"],
+    attr_aspects = ["embed", "deps"],
     attrs = {
         "_go_stdlib": attr.label(
             default = "//:stdlib",
